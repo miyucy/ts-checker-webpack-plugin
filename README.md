@@ -2,10 +2,30 @@
 
 ## Usage
 
+```bash
+yarn add @miyucy/ts-checker-webpack-plugin
+```
+
 ```js
-const TsCheckerPlugin = require("ts-checker-webpack-plugin").default;
+const TsCheckerPlugin = require("@miyucy/ts-checker-webpack-plugin").default;
 
 module.exports = {
+  // :
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        use: [
+          {
+            loader: "ts-loader",
+            options: {
+              transpileOnly: true
+            }
+          }
+        ]
+      }
+    ]
+  }
   // :
   plugins: [
     new TsCheckerPlugin()
