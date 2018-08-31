@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "alwaysStrict": true,
+    "strictNullChecks": true,
+    "module": "esnext",
+    "baseUrl": "."
+  },
+  "include": ["./src/*.ts"]
+}

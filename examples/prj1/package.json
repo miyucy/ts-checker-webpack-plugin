@@ -1,0 +1,19 @@
+{
+  "name": "prj1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "",
+  "scripts": {
+    "build": "node --experimental-worker node_modules/.bin/webpack --run-dev --reporter basic --config webpack.config.js",
+    "watch": "node --experimental-worker node_modules/.bin/webpack --run-dev --reporter basic --config webpack.config.js --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "ts-loader": "^4.5.0",
+    "typescript": "^3.0.1",
+    "webpack": "^4.17.1",
+    "webpack-command": "^0.4.1"
+  }
+}
