@@ -1,6 +1,6 @@
 {
   "name": "@miyucy/ts-checker-webpack-plugin",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
@@ -26,5 +26,17 @@
   "engines": {
     "node": ">= 10.5.0"
   },
-  "types": "types/index.d.ts"
+  "types": "types/index.d.ts",
+  "repository": "https://github.com/miyucy/ts-checker-webpack-plugin",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "webpack",
+    "plugin",
+    "webpack-plugin",
+    "typescript",
+    "type",
+    "checker"
+  ]
 }

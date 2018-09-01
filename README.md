@@ -1,5 +1,7 @@
 # ts-checker-webpack-plugin
 
+Runs typescript type checker on threads.
+
 ## Usage
 
 ```bash
