@@ -1,7 +1,6 @@
-import ts from "typescript";
 import { readFile } from "fs";
+import ts from "typescript";
 import { promisify } from "util";
-
 
 export interface DiagnosticError {
   category: ts.DiagnosticCategory;
@@ -36,15 +35,14 @@ export async function toDiagnosticError(diagnostic: ts.Diagnostic) {
     try {
       const suffix = await createSuffix(error.fileName, error.line, error.character, error.length);
       error.message = error.message + "\n" + suffix;
-    } catch (e) {
-    }
+    } catch {}
   }
 
   return error;
 }
 
 function createSuffix(fileName: string, line: number, character: number, length: number) {
-  return fsReadFile(fileName, { encoding: "utf-8" }).then(contents => (
-    [...contents.split("\n"), ""][line] + "\n" + " ".repeat(character) + "^".repeat(length) + "\n"
-  ));
+  return fsReadFile(fileName, { encoding: "utf-8" }).then(
+    contents => [...contents.split("\n"), ""][line] + "\n" + " ".repeat(character) + "^".repeat(length) + "\n"
+  );
 }

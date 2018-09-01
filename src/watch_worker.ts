@@ -1,6 +1,6 @@
 import ts from "typescript";
+import * as workerThreads from "worker_threads";
 import { toDiagnosticError } from "./error";
-import * as worker from "worker_threads";
 import Queue from "./queue";
 
 interface WorkerData {
@@ -16,7 +16,7 @@ function modifyCompilerOptions(options: ts.CompilerOptions, tsConfigPath: string
   };
 }
 
-function reportDiagnostic(queue: Queue, parentPort: worker.MessagePort, diagnostic: ts.Diagnostic) {
+function reportDiagnostic(queue: Queue, parentPort: workerThreads.MessagePort, diagnostic: ts.Diagnostic) {
   queue.add(() =>
     toDiagnosticError(diagnostic)
       .then(payload =>
@@ -36,7 +36,7 @@ function reportDiagnostic(queue: Queue, parentPort: worker.MessagePort, diagnost
 
 function reportWatchStatus(
   queue: Queue,
-  parentPort: worker.MessagePort,
+  parentPort: workerThreads.MessagePort,
   diagnostic: ts.Diagnostic,
   newLine: string,
   options: ts.CompilerOptions
@@ -58,7 +58,7 @@ function reportWatchStatus(
   );
 }
 
-function createWatchProgram(parentPort: worker.MessagePort | null, args: WorkerData) {
+function createWatchProgram(parentPort: workerThreads.MessagePort | null, args: WorkerData) {
   if (!parentPort) {
     return;
   }
@@ -74,4 +74,4 @@ function createWatchProgram(parentPort: worker.MessagePort | null, args: WorkerD
     )
   );
 }
-createWatchProgram(worker.parentPort, worker.workerData as WorkerData);
+createWatchProgram(workerThreads.parentPort, workerThreads.workerData as WorkerData);

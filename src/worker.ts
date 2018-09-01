@@ -1,10 +1,9 @@
-import ts from "typescript";
 import { readFile } from "fs";
-import { promisify } from "util";
 import { dirname } from "path";
+import ts from "typescript";
+import { promisify } from "util";
+import * as workerThreads from "worker_threads";
 import { toDiagnosticError } from "./error";
-import * as worker from "worker_threads";
-import { logger } from "./logger";
 
 interface WorkerData {
   tsConfigPath: string;
@@ -58,7 +57,7 @@ function getDiagnostics(program: ts.Program, emitResult: ts.EmitResult) {
   return [...ts.getPreEmitDiagnostics(program), ...emitResult.diagnostics].filter(Boolean);
 }
 
-function run(parentPort: worker.MessagePort | null, workerData: WorkerData) {
+function run(parentPort: workerThreads.MessagePort | null, workerData: WorkerData) {
   if (!parentPort) {
     return;
   }
@@ -83,4 +82,4 @@ function run(parentPort: worker.MessagePort | null, workerData: WorkerData) {
       }
     });
 }
-run(worker.parentPort, worker.workerData as WorkerData);
+run(workerThreads.parentPort, workerThreads.workerData as WorkerData);

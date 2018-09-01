@@ -1,7 +1,7 @@
+import { EventEmitter } from "events";
+import { resolve } from "path";
 import ts from "typescript";
 import * as webpack from "webpack";
-import * as path from "path";
-import * as event from "events";
 import * as workerThreads from "worker_threads"; // https://nodejs.org/api/worker_threads.html
 import { findTsConfig } from "./find_ts_config";
 import { logger } from "./logger";
@@ -12,7 +12,7 @@ export default class TsCheckerPlugin {
   errors: any[] = [];
   worker: workerThreads.Worker | null = null;
   watch: boolean = false;
-  event: event.EventEmitter = new event.EventEmitter();
+  event: EventEmitter = new EventEmitter();
   tsConfigPath?: string;
   tsCompilerOptions?: ts.CompilerOptions;
 
@@ -58,7 +58,7 @@ export default class TsCheckerPlugin {
     });
 
     compiler.hooks.watchClose.tap(NAME, () => {
-      logger.info("watchClose");
+      logger.debug("watchClose");
       if (this.worker) {
         const threadId = this.worker.threadId;
         this.worker.unref();
@@ -105,7 +105,7 @@ export default class TsCheckerPlugin {
     worker.on("error", () => this.event.emit("done"));
     worker.on("message", message => {
       if (message.type === "log") {
-        logger.info("log", ...message.payload);
+        logger.debug("log", ...message.payload);
       } else if (message.type === "diagnostics") {
         message.payload.forEach(diagnostic => {
           this.errors.push(diagnostic);
@@ -118,7 +118,7 @@ export default class TsCheckerPlugin {
   hookWatchWorkerEvents(worker) {
     worker.on("message", message => {
       if (message.type === "log") {
-        // logger.info("log", ...message.payload);
+        logger.debug("log", ...message.payload);
       } else if (message.type === "diagnostic") {
         this.errors.push(message.payload);
       } else if (message.type === "report") {
@@ -161,18 +161,15 @@ export default class TsCheckerPlugin {
   }
 
   createWorker(tsConfigPath: string, options: ts.CompilerOptions = {}) {
-    const worker = new workerThreads.Worker(path.resolve(__dirname, "worker.js"), {
-      workerData: {
-        tsConfigPath,
-        options
-      }
-    });
-    this.event.emit("worker:new", worker.threadId);
-    return worker;
+    return this._createWorker("worker.js", tsConfigPath, options);
   }
 
   createWatchWorker(tsConfigPath: string, options: ts.CompilerOptions = {}) {
-    const worker = new workerThreads.Worker(path.resolve(__dirname, "watch_worker.js"), {
+    return this._createWorker("watch_worker.js", tsConfigPath, options);
+  }
+
+  private _createWorker(fileName: string, tsConfigPath: string, options: ts.CompilerOptions = {}) {
+    const worker = new workerThreads.Worker(resolve(__dirname, fileName), {
       workerData: {
         tsConfigPath,
         options
@@ -186,20 +183,20 @@ export default class TsCheckerPlugin {
     const t: any = {};
     this.event.on("worker:new", threadId => {
       t.new = Date.now();
-      logger.info("worker:new");
+      logger.debug("worker:new");
     });
     this.event.on("worker:online", threadId => {
       t.online = Date.now();
-      logger.info("worker:online", `online - new = ${t.online - t.new}ms`);
+      logger.debug("worker:online", `online - new = ${t.online - t.new}ms`);
     });
     this.event.on("worker:exit", ([threadId, exitCode]) => {
-      logger.info("worker:exit", "exitCode = ", exitCode);
+      logger.debug("worker:exit", "exitCode = ", exitCode);
     });
     this.event.on("worker:error", ([threadId, error]) => {
       logger.info("worker:error", error);
     });
     this.event.on("worker:terminate", threadId => {
-      logger.info("worker:terminate");
+      logger.debug("worker:terminate");
     });
     this.event.on("start", () => {
       t.start = Date.now();
