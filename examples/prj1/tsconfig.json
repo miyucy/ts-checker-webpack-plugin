@@ -5,7 +5,8 @@
     "alwaysStrict": true,
     "strictNullChecks": true,
     "module": "esnext",
-    "baseUrl": "."
+    "baseUrl": ".",
+    "typeRoots": []
   },
   "include": ["./src/*.ts"]
 }

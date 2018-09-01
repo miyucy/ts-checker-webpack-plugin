@@ -1,7 +1,7 @@
-// https://nodejs.org/api/worker_threads.html
 import ts from "typescript";
-import toError from "./to_error";
-const worker = require("worker_threads");
+import { toDiagnosticError } from "./error";
+import * as worker from "worker_threads";
+import Queue from "./queue";
 
 interface WorkerData {
   tsConfigPath: string;
@@ -16,31 +16,62 @@ function modifyCompilerOptions(options: ts.CompilerOptions, tsConfigPath: string
   };
 }
 
-function reportDiagnostic(diagnostic: ts.Diagnostic) {
-  worker.parentPort.postMessage({
-    result: "diagnostics",
-    diagnostics: [diagnostic].map(toError)
-  });
+function reportDiagnostic(queue: Queue, parentPort: worker.MessagePort, diagnostic: ts.Diagnostic) {
+  queue.add(() =>
+    toDiagnosticError(diagnostic)
+      .then(payload =>
+        parentPort.postMessage({
+          type: "diagnostic",
+          payload
+        })
+      )
+      .catch(error =>
+        parentPort.postMessage({
+          type: "log",
+          payload: ["error", error]
+        })
+      )
+  );
 }
 
-function reportWatchStatus(diagnostic: ts.Diagnostic, newLine: string, options: ts.CompilerOptions) {
-  worker.parentPort.postMessage({
-    result: "report",
-    diagnostic
-  });
+function reportWatchStatus(
+  queue: Queue,
+  parentPort: worker.MessagePort,
+  diagnostic: ts.Diagnostic,
+  newLine: string,
+  options: ts.CompilerOptions
+) {
+  queue.add(() =>
+    toDiagnosticError(diagnostic)
+      .then(payload =>
+        parentPort.postMessage({
+          type: "report",
+          payload
+        })
+      )
+      .catch(error =>
+        parentPort.postMessage({
+          type: "log",
+          payload: ["error", error]
+        })
+      )
+  );
 }
 
-function createWatchProgram(args: WorkerData) {
+function createWatchProgram(parentPort: worker.MessagePort | null, args: WorkerData) {
+  if (!parentPort) {
+    return;
+  }
+  const queue = new Queue();
   ts.createWatchProgram(
     ts.createWatchCompilerHost(
       args.tsConfigPath,
       modifyCompilerOptions(args.options, args.tsConfigPath),
       ts.sys,
       ts.createSemanticDiagnosticsBuilderProgram,
-      reportDiagnostic,
-      reportWatchStatus
+      reportDiagnostic.bind(null, queue, parentPort),
+      reportWatchStatus.bind(null, queue, parentPort)
     )
   );
 }
-
-createWatchProgram(worker.workerData);
+createWatchProgram(worker.parentPort, worker.workerData as WorkerData);

@@ -1,6 +1,6 @@
 {
   "name": "@miyucy/ts-checker-webpack-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
@@ -16,8 +16,8 @@
     "README.md"
   ],
   "dependencies": {
-    "tslib": "^1.9.3",
-    "typescript": ">= 2.7"
+    "typescript": ">= 2.7",
+    "webpack-log": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "*",
@@ -25,5 +25,6 @@
   },
   "engines": {
     "node": ">= 10.5.0"
-  }
+  },
+  "types": "types/index.d.ts"
 }

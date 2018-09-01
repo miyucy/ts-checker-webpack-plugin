@@ -1,17 +1,19 @@
 import ts from "typescript";
-import * as fs from "fs";
-import * as util from "util";
-import * as path from "path";
-import toError from "./to_error";
-const worker = require("worker_threads");
+import { readFile } from "fs";
+import { promisify } from "util";
+import { dirname } from "path";
+import { toDiagnosticError } from "./error";
+import * as worker from "worker_threads";
+import { logger } from "./logger";
 
 interface WorkerData {
   tsConfigPath: string;
   options: ts.CompilerOptions;
 }
 
+const fsReadFile = promisify(readFile);
+
 function parseJsonText(tsConfigPath: string) {
-  const fsReadFile = util.promisify(fs.readFile);
   return fsReadFile(tsConfigPath).then(data => {
     return ts.parseJsonText(tsConfigPath, data.toString("utf-8"));
   });
@@ -19,7 +21,7 @@ function parseJsonText(tsConfigPath: string) {
 
 function parseJsonConfig(jsonSourceFile: ts.JsonSourceFile) {
   const tsConfigPath = jsonSourceFile.fileName;
-  const basePath = path.dirname(tsConfigPath);
+  const basePath = dirname(tsConfigPath);
   const parsedCommandLine = ts.parseJsonSourceFileConfigFileContent(jsonSourceFile, ts.sys, basePath);
   return Promise.resolve({
     ...parsedCommandLine,
@@ -56,28 +58,29 @@ function getDiagnostics(program: ts.Program, emitResult: ts.EmitResult) {
   return [...ts.getPreEmitDiagnostics(program), ...emitResult.diagnostics].filter(Boolean);
 }
 
-function run(workerData: WorkerData) {
+function run(parentPort: worker.MessagePort | null, workerData: WorkerData) {
+  if (!parentPort) {
+    return;
+  }
+
   parseJsonText(workerData.tsConfigPath)
     .then(parseJsonConfig)
     .then(createProgram)
-    .then(program => {
-      const diagnostics = getDiagnostics(program, program.emit());
+    .then(program => [program, program.emit()] as [ts.Program, ts.EmitResult])
+    .then(([program, emitResult]) => {
+      parentPort.postMessage({
+        type: "log",
+        payload: ["sourceFiles", program.getSourceFiles().length]
+      });
+      const diagnostics = getDiagnostics(program, emitResult);
       if (diagnostics.length > 0) {
-        worker.parentPort.postMessage({
-          result: "diagnostics",
-          diagnostics: diagnostics.map(toError)
-        });
-      } else {
-        worker.parentPort.postMessage({
-          result: "success"
+        Promise.all(diagnostics.map(toDiagnosticError)).then(payload => {
+          parentPort.postMessage({
+            type: "diagnostics",
+            payload
+          });
         });
       }
-    })
-    .catch(error => {
-      worker.parentPort.postMessage({
-        result: "error",
-        error
-      });
     });
 }
-run(worker.workerData);
+run(worker.parentPort, worker.workerData as WorkerData);

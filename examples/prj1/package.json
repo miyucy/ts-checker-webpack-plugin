@@ -4,8 +4,8 @@
   "description": "",
   "main": "",
   "scripts": {
-    "build": "node --experimental-worker node_modules/.bin/webpack --run-dev --reporter basic --config webpack.config.js",
-    "watch": "node --experimental-worker node_modules/.bin/webpack --run-dev --reporter basic --config webpack.config.js --watch",
+    "build": "node --experimental-worker node_modules/.bin/webpack --run-dev --reporter basic --config webpack.config.js --log-level trace",
+    "watch": "node --experimental-worker node_modules/.bin/webpack --run-dev --reporter basic --config webpack.config.js --log-level trace --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -15,5 +15,6 @@
     "typescript": "^3.0.1",
     "webpack": "^4.17.1",
     "webpack-command": "^0.4.1"
-  }
+  },
+  "dependencies": {}
 }

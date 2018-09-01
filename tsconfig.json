@@ -7,7 +7,6 @@
     "strictNullChecks": true,
     "module": "commonjs",
     "esModuleInterop": true,
-    "importHelpers": true,
     "diagnostics": true,
     "declaration": true,
     "declarationDir": "./types"
