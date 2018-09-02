@@ -73,13 +73,20 @@ function run(parentPort: workerThreads.MessagePort | null, workerData: WorkerDat
       });
       const diagnostics = getDiagnostics(program, emitResult);
       if (diagnostics.length > 0) {
-        Promise.all(diagnostics.map(toDiagnosticError)).then(payload => {
-          parentPort.postMessage({
-            type: "diagnostics",
-            payload
-          });
-        });
+        return Promise.all(diagnostics.map(toDiagnosticError))
+          .then(payload => {
+            parentPort.postMessage({
+              type: "diagnostics",
+              payload
+            });
+          })
       }
-    });
+    })
+    .catch(error =>
+      parentPort.postMessage({
+        type: "log",
+        payload: ["error", error]
+      })
+    );
 }
 run(workerThreads.parentPort, workerThreads.workerData as WorkerData);

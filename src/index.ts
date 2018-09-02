@@ -23,37 +23,37 @@ export default class TsCheckerPlugin {
   }
 
   apply(compiler: webpack.Compiler) {
-    compiler.hooks.run.tapAsync(NAME, (compilation: webpack.compilation.Compilation, callback) => {
+    compiler.hooks.run.tapAsync(NAME, (compilation: webpack.compilation.Compilation, done) => {
       this.watch = false;
       this.errors = [];
       this.resolveTsConfigPath(compiler)
         .then(tsConfigPath => {
-          logger.info("tsConfigPath = ", tsConfigPath);
+          logger.info(`tsConfigPath = ${tsConfigPath}`);
           this.worker = this.hookWorkerEvents(this.hookWorkerCommonEvents(this.createWorker(tsConfigPath)));
-          callback();
+          done();
         })
         .catch(error => {
           logger.error(error);
-          callback();
+          done(error);
         });
     });
 
-    compiler.hooks.watchRun.tapAsync(NAME, (compiler: webpack.Compiler, callback) => {
+    compiler.hooks.watchRun.tapAsync(NAME, (compiler: webpack.Compiler, done) => {
       this.watch = true;
       this.errors = [];
       if (this.worker) {
-        callback();
+        done();
         return;
       }
       this.resolveTsConfigPath(compiler)
         .then(tsConfigPath => {
-          logger.info("tsConfigPath = ", tsConfigPath);
+          logger.info(`tsConfigPath = ${tsConfigPath}`);
           this.worker = this.hookWatchWorkerEvents(this.hookWorkerCommonEvents(this.createWatchWorker(tsConfigPath)));
-          callback();
+          done();
         })
         .catch(error => {
           logger.error(error);
-          callback();
+          done(error);
         });
     });
 
@@ -67,11 +67,11 @@ export default class TsCheckerPlugin {
       this.worker = null;
     });
 
-    compiler.hooks.done.tapAsync(NAME, (stats: webpack.Stats, callback) => {
+    compiler.hooks.done.tapAsync(NAME, (stats: webpack.Stats, done) => {
       if (this.watch) {
-        this.waitForWatchDone(stats, callback);
+        this.waitForWatchDone(stats, done);
       } else {
-        this.waitForDone(stats, callback);
+        this.waitForDone(stats, done);
       }
     });
   }
@@ -80,17 +80,17 @@ export default class TsCheckerPlugin {
     return findTsConfig([this.tsConfigPath, compiler.options.context, "."]);
   }
 
-  waitForWatchDone(stats: webpack.Stats, callback) {
+  waitForWatchDone(stats: webpack.Stats, done) {
     this.event.once("done", () => {
       this.reportErrors(stats);
-      callback();
+      done();
     });
   }
 
-  waitForDone(stats: webpack.Stats, callback) {
+  waitForDone(stats: webpack.Stats, done) {
     this.event.once("done", () => {
       this.reportErrors(stats);
-      callback();
+      done();
     });
   }
 

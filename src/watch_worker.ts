@@ -11,8 +11,7 @@ interface WorkerData {
 function modifyCompilerOptions(options: ts.CompilerOptions, tsConfigPath: string): ts.CompilerOptions {
   return {
     ...options,
-    noEmit: true,
-    project: tsConfigPath
+    noEmit: true
   };
 }
 
