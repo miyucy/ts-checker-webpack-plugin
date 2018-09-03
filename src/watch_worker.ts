@@ -33,43 +33,20 @@ function reportDiagnostic(queue: Queue, parentPort: workerThreads.MessagePort, d
   );
 }
 
-function reportWatchStatus(
-  queue: Queue,
-  parentPort: workerThreads.MessagePort,
-  diagnostic: ts.Diagnostic,
-  newLine: string,
-  options: ts.CompilerOptions
-) {
-  queue.add(() =>
-    toDiagnosticError(diagnostic)
-      .then(payload =>
-        parentPort.postMessage({
-          type: "report",
-          payload
-        })
-      )
-      .catch(error =>
-        parentPort.postMessage({
-          type: "log",
-          payload: ["error", error]
-        })
-      )
-  );
-}
-
 function createWatchProgram(parentPort: workerThreads.MessagePort | null, args: WorkerData) {
   if (!parentPort) {
     return;
   }
   const queue = new Queue();
+  const reporter = reportDiagnostic.bind(null, queue, parentPort);
   ts.createWatchProgram(
     ts.createWatchCompilerHost(
       args.tsConfigPath,
       modifyCompilerOptions(args.options, args.tsConfigPath),
       ts.sys,
       ts.createSemanticDiagnosticsBuilderProgram,
-      reportDiagnostic.bind(null, queue, parentPort),
-      reportWatchStatus.bind(null, queue, parentPort)
+      reporter,
+      reporter
     )
   );
 }

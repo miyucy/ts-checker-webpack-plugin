@@ -1,4 +1,4 @@
-function foo(arg: { a: string }) {
+function foo(arg: { a: number }) {
     console.log(arg.a);
 }
-foo({ a: 1 });
+foo({ a: "1" });

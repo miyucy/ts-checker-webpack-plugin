@@ -1,35 +1,42 @@
-import { EventEmitter } from "events";
 import { resolve } from "path";
 import ts from "typescript";
 import * as webpack from "webpack";
 import * as workerThreads from "worker_threads"; // https://nodejs.org/api/worker_threads.html
 import { findTsConfig } from "./find_ts_config";
 import { logger } from "./logger";
+import Waiter from "./waiter";
 
-const NAME = "TsCheckerPlugin";
 export default class TsCheckerPlugin {
-  exited: boolean = false;
-  errors: any[] = [];
-  worker: workerThreads.Worker | null = null;
-  watch: boolean = false;
-  event: EventEmitter = new EventEmitter();
+  static NAME = "TsCheckerPlugin";
+
   tsConfigPath?: string;
   tsCompilerOptions?: ts.CompilerOptions;
+  emitError: boolean = false;
 
-  constructor(options: { tsConfigPath?: string; options?: ts.CompilerOptions } = {}) {
+  workerCreatedAt: number = 0;
+  workerStartedAt: number = 0;
+  workerFinishedAt: number = 0;
+  checkerStartedAt: number = 0;
+  checkerFinishedAt: number = 0;
+  worker: workerThreads.Worker | null = null;
+  errors: any[] = [];
+  warnings: any[] = [];
+  fatalErrors: any[] = [];
+  waiter: Waiter = new Waiter();
+
+  constructor(options: { tsConfigPath?: string; options?: ts.CompilerOptions; emitError?: boolean } = {}) {
     this.tsConfigPath = options.tsConfigPath;
     this.tsCompilerOptions = options.options;
-    this.setupEventHandler();
+    this.emitError = !!options.emitError;
   }
 
   apply(compiler: webpack.Compiler) {
-    compiler.hooks.run.tapAsync(NAME, (compilation: webpack.compilation.Compilation, done) => {
-      this.watch = false;
-      this.errors = [];
+    compiler.hooks.run.tapAsync(TsCheckerPlugin.NAME, (compilation: webpack.compilation.Compilation, done) => {
+      logger.info("run");
       this.resolveTsConfigPath(compiler)
         .then(tsConfigPath => {
           logger.info(`tsConfigPath = ${tsConfigPath}`);
-          this.worker = this.hookWorkerEvents(this.hookWorkerCommonEvents(this.createWorker(tsConfigPath)));
+          this.worker = this.hookWorkerEvents(this.createWorker(tsConfigPath));
           done();
         })
         .catch(error => {
@@ -38,9 +45,8 @@ export default class TsCheckerPlugin {
         });
     });
 
-    compiler.hooks.watchRun.tapAsync(NAME, (compiler: webpack.Compiler, done) => {
-      this.watch = true;
-      this.errors = [];
+    compiler.hooks.watchRun.tapAsync(TsCheckerPlugin.NAME, (compiler: webpack.Compiler, done) => {
+      logger.info("watchRun");
       if (this.worker) {
         done();
         return;
@@ -48,7 +54,7 @@ export default class TsCheckerPlugin {
       this.resolveTsConfigPath(compiler)
         .then(tsConfigPath => {
           logger.info(`tsConfigPath = ${tsConfigPath}`);
-          this.worker = this.hookWatchWorkerEvents(this.hookWorkerCommonEvents(this.createWatchWorker(tsConfigPath)));
+          this.worker = this.hookWorkerEvents(this.createWatchWorker(tsConfigPath));
           done();
         })
         .catch(error => {
@@ -57,107 +63,87 @@ export default class TsCheckerPlugin {
         });
     });
 
-    compiler.hooks.watchClose.tap(NAME, () => {
-      logger.debug("watchClose");
-      if (this.worker) {
-        const threadId = this.worker.threadId;
-        this.worker.unref();
-        this.worker.terminate(() => this.event.emit("worker:terminate", threadId));
-      }
-      this.worker = null;
+    compiler.hooks.done.tapAsync(TsCheckerPlugin.NAME, (stats: webpack.Stats, done) => {
+      logger.trace("done");
+      this.waiter.wait(() => {
+        if (this.fatalErrors.length > 0) {
+          this.fatalErrors.forEach(done);
+        } else {
+          const errors = this.errors.map(error => new Error(error.message));
+          const warnings = this.warnings.map(warning => new Error(warning.message));
+          errors.forEach(error => stats.compilation.errors.push(error));
+          warnings.forEach(warning => stats.compilation.warnings.push(warning));  
+          if (this.emitError) {
+            done(errors[0]);
+          } else {
+            done();
+          }
+        }
+        this.errors = [];
+        this.warnings = [];
+        this.fatalErrors = [];
+      });
     });
-
-    compiler.hooks.done.tapAsync(NAME, (stats: webpack.Stats, done) => {
-      if (this.watch) {
-        this.waitForWatchDone(stats, done);
-      } else {
-        this.waitForDone(stats, done);
-      }
-    });
-  }
-
-  resolveTsConfigPath(compiler: webpack.Compiler) {
-    return findTsConfig([this.tsConfigPath, compiler.options.context, "."]);
-  }
-
-  waitForWatchDone(stats: webpack.Stats, done) {
-    this.event.once("done", () => {
-      this.reportErrors(stats);
-      done();
-    });
-  }
-
-  waitForDone(stats: webpack.Stats, done) {
-    this.event.once("done", () => {
-      this.reportErrors(stats);
-      done();
-    });
-  }
-
-  reportErrors(stats: webpack.Stats) {
-    this.errors.forEach(error => stats.compilation.errors.push(new Error(error.message)));
-    this.errors = [];
   }
 
   hookWorkerEvents(worker: workerThreads.Worker) {
-    worker.on("online", () => this.event.emit("start"));
-    worker.on("exit", () => this.event.emit("done"));
-    worker.on("error", () => this.event.emit("done"));
-    worker.on("message", message => {
-      if (message.type === "log") {
-        logger.debug("log", ...message.payload);
-      } else if (message.type === "diagnostics") {
-        message.payload.forEach(diagnostic => {
-          this.errors.push(diagnostic);
-        });
-      }
-    });
-    return worker;
-  }
-
-  hookWatchWorkerEvents(worker) {
-    worker.on("message", message => {
-      if (message.type === "log") {
-        logger.debug("log", ...message.payload);
-      } else if (message.type === "diagnostic") {
-        this.errors.push(message.payload);
-      } else if (message.type === "report") {
-        const diagnostic: ts.Diagnostic = message.payload;
-        if (diagnostic.code === 6031) {
-          // Starting compilation in watch mode...
-          this.event.emit("start");
-        } else if (diagnostic.code === 6032) {
-          // File change detected. Starting incremental compilation...
-          this.event.emit("start");
-        } else if (diagnostic.code === 6193) {
-          // Found 1 error. Watching for file changes.
-          this.event.emit("done");
-        } else if (diagnostic.code === 6194) {
-          // Found {0} errors. Watching for file changes.
-          this.event.emit("done");
-        } else {
-        }
-      }
-    });
-    return worker;
-  }
-
-  hookWorkerCommonEvents(worker) {
-    const threadId = worker.threadId;
-
     worker.on("online", () => {
-      this.event.emit("worker:online", threadId);
+      this.workerStartedAt = Date.now();
+      logger.info("Start", `${this.workerStartedAt - this.workerCreatedAt}ms`);
+      this.errors = [];
+      this.warnings = [];
+      this.fatalErrors = [];
     });
 
     worker.on("exit", exitCode => {
-      this.event.emit("worker:exit", [threadId, exitCode]);
+      this.workerFinishedAt = Date.now();
+      logger.info("Done", `${this.workerFinishedAt - this.workerStartedAt}ms`);
+      this.waiter.notify(true);
     });
 
     worker.on("error", error => {
-      this.event.emit("worker:error", [threadId, error]);
+      this.fatalErrors.push(error);
+      this.waiter.notify(false);
+    });
+
+    worker.on("message", message => {
+      logger.debug("message", message);
+      if (message.type === "log") {
+        logger.debug("log", ...message.payload);
+      } else if (message.type === "diagnostics") {
+        message.payload.forEach(diagnostic => this.registerDiagnotic(diagnostic));
+      } else if (message.type === "diagnostic") {
+        this.registerDiagnotic(message.payload);
+      }
     });
 
     return worker;
+  }
+
+  registerDiagnotic(diagnostic) {
+    if (diagnostic.category == ts.DiagnosticCategory.Message) {
+      if (diagnostic.code === 6031 || diagnostic.code === 6032) {
+        // 6031: Starting compilation in watch mode...
+        // 6032: File change detected. Starting incremental compilation...
+        this.checkerStartedAt = Date.now();
+        logger.info("Start");
+        this.errors = [];
+        this.warnings = [];
+        this.fatalErrors = [];
+      } else if (diagnostic.code === 6193 || diagnostic.code === 6194) {
+        // 6193: Found 1 error. Watching for file changes.
+        // 6194: Found {0} errors. Watching for file changes.
+        this.checkerFinishedAt = Date.now();
+        logger.info("Done", `${this.checkerFinishedAt - this.checkerStartedAt}ms`);
+        this.waiter.notify([this.errors, this.warnings, this.fatalErrors]);
+      } else {
+        logger.debug("diagnostic", diagnostic);
+      }
+    } else if (diagnostic.category == ts.DiagnosticCategory.Error) {
+      this.errors.push(diagnostic);
+    } else {
+      this.warnings.push(diagnostic);
+    }
   }
 
   createWorker(tsConfigPath: string, options: ts.CompilerOptions = {}) {
@@ -168,43 +154,18 @@ export default class TsCheckerPlugin {
     return this._createWorker("watch_worker.js", tsConfigPath, options);
   }
 
-  private _createWorker(fileName: string, tsConfigPath: string, options: ts.CompilerOptions = {}) {
+  _createWorker(fileName: string, tsConfigPath: string, options: ts.CompilerOptions = {}) {
+    this.workerCreatedAt = Date.now();
     const worker = new workerThreads.Worker(resolve(__dirname, fileName), {
       workerData: {
         tsConfigPath,
         options
       }
     });
-    this.event.emit("worker:new", worker.threadId);
     return worker;
   }
 
-  setupEventHandler() {
-    const t: any = {};
-    this.event.on("worker:new", threadId => {
-      t.new = Date.now();
-      logger.debug("worker:new");
-    });
-    this.event.on("worker:online", threadId => {
-      t.online = Date.now();
-      logger.debug("worker:online", `online - new = ${t.online - t.new}ms`);
-    });
-    this.event.on("worker:exit", ([threadId, exitCode]) => {
-      logger.debug("worker:exit", "exitCode = ", exitCode);
-    });
-    this.event.on("worker:error", ([threadId, error]) => {
-      logger.info("worker:error", error);
-    });
-    this.event.on("worker:terminate", threadId => {
-      logger.debug("worker:terminate");
-    });
-    this.event.on("start", () => {
-      t.start = Date.now();
-      logger.info("Start");
-    });
-    this.event.on("done", () => {
-      t.done = Date.now();
-      logger.info("Done", `${t.done - t.start}ms`);
-    });
+  resolveTsConfigPath(compiler: webpack.Compiler) {
+    return findTsConfig([this.tsConfigPath, compiler.options.context, "."]);
   }
 }

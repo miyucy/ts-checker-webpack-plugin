@@ -5,7 +5,8 @@
     "alwaysStrict": true,
     "strictNullChecks": true,
     "module": "esnext",
-    "typeRoots": []
+    "typeRoots": [],
+    "diagnostics": true
   },
   "include": ["./src/*.ts"]
 }
