@@ -1,0 +1,26 @@
+version: 2
+
+workflows:
+  version: 2
+  publish:
+    jobs:
+      - publish:
+          filters:
+            tags:
+              only: /^v.*$/
+jobs:
+  publish:
+    working_directory: ~/workspace
+    docker:
+      - image: circleci/node:10
+    steps:
+      - checkout
+      - run: |
+          yarn install
+      - run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}" >> ~/.npmrc
+      - deploy:
+          command: |
+            yarn clean
+            yarn build
+            npm publish

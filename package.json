@@ -5,7 +5,8 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc --project .",
-    "watch": "tsc --watch --project ."
+    "watch": "tsc --watch --project .",
+    "clean": "rm -rf lib types"
   },
   "author": "miyucy",
   "license": "MIT",
