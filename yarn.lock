@@ -3,9 +3,9 @@
 
 
 "@types/node@*":
-  version "10.11.0"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.11.0.tgz#ddd0d67a3b6c3810dd1a59e36675fa82de5e19ae"
-  integrity sha512-R4Dvw6KjSYn/SpvjRchBOwXr14vVVcFXCtnM3f0aLvlJS8a599rrcEoihcP2/+Z/f75E5GNPd4aWM7j1yei9og==
+  version "10.12.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.12.0.tgz#ea6dcbddbc5b584c83f06c60e82736d8fbb0c235"
+  integrity sha512-3TUHC3jsBAB7qVRGxT6lWyYo2v96BMmD2PTcl47H25Lu7UXtFH/2qqmKiVrnel6Ne//0TFYf6uvNX+HW2FRkLQ==
 
 "@types/tapable@*":
   version "1.0.4"
@@ -13,16 +13,16 @@
   integrity sha512-78AdXtlhpCHT0K3EytMpn4JNxaf5tbqbLcbIRoQIHzpTIyjpxLQKRoxU55ujBXAtg3Nl2h/XWvfDa9dsMOd0pQ==
 
 "@types/uglify-js@*":
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/@types/uglify-js/-/uglify-js-3.0.3.tgz#801a5ca1dc642861f47c46d14b700ed2d610840b"
-  integrity sha512-MAT0BW2ruO0LhQKjvlipLGCF/Yx0y/cj+tT67tK3QIQDrM2+9R78HgJ54VlrE8AbfjYJJBCQCEPM5ZblPVTuww==
+  version "3.0.4"
+  resolved "https://registry.yarnpkg.com/@types/uglify-js/-/uglify-js-3.0.4.tgz#96beae23df6f561862a830b4288a49e86baac082"
+  integrity sha512-SudIN9TRJ+v8g5pTG8RRCqfqTMNqgWCKKd3vtynhGzkIIjxaicNAMuY5TRadJ6tzDu3Dotf3ngaMILtmOdmWEQ==
   dependencies:
     source-map "^0.6.1"
 
 "@types/webpack@*":
-  version "4.4.12"
-  resolved "https://registry.yarnpkg.com/@types/webpack/-/webpack-4.4.12.tgz#79094b4c51ab1cf8f41f55bfe270c150bf0c0528"
-  integrity sha512-qCBVNh3EODnbZVHLqqjBlxIJ9qo9JxhcT2iRe4cQEGWahe4fd56VVmcGQKjE2dUgSsFRCxAZhUKLtec2B06r2g==
+  version "4.4.17"
+  resolved "https://registry.yarnpkg.com/@types/webpack/-/webpack-4.4.17.tgz#3da3e0823a051311ba510bdc32354888921fc8b4"
+  integrity sha512-f8fHYEhlrSQJ5BHaonyatL11MYwqQ7I6QDVCT41LqIyxR7j9B2uY4cQKxDoWFC9l2NbFGsIhiJBKZ6Y6LMBFLA==
   dependencies:
     "@types/node" "*"
     "@types/tapable" "*"
@@ -30,9 +30,9 @@
     source-map "^0.6.0"
 
 ansi-colors@^3.0.0:
-  version "3.0.6"
-  resolved "https://registry.yarnpkg.com/ansi-colors/-/ansi-colors-3.0.6.tgz#a0b9e00e8c1cc6685b1c3130dbeb9abed03ca6a4"
-  integrity sha512-rY3B55KSBMMARmGXtzaG5o+kqnCrEF99rngBq5fV+cbwJepVGhDT8eB7UhSDwsJxNsMzSQDLQAyWmgi9pfzssQ==
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/ansi-colors/-/ansi-colors-3.1.0.tgz#dcfaacc90ef9187de413ec3ef8d5eb981a98808f"
+  integrity sha512-hTv1qPdi+sVEk3jYsdjox5nQI0C9HTbjKShbCdYLKb1LOfNbb7wsF4d7OEKIZoxIHx02tSp3m94jcPW2EfMjmA==
 
 source-map@^0.6.0, source-map@^0.6.1:
   version "0.6.1"
@@ -40,9 +40,9 @@ source-map@^0.6.0, source-map@^0.6.1:
   integrity sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==
 
 "typescript@>= 2.7":
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.0.3.tgz#4853b3e275ecdaa27f78fda46dc273a7eb7fc1c8"
-  integrity sha512-kk80vLW9iGtjMnIv11qyxLqZm20UklzuR2tL0QAnDIygIUIemcZMxlMWudl9OOt76H3ntVzcTiddQ1/pAAJMYg==
+  version "3.1.3"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.1.3.tgz#01b70247a6d3c2467f70c45795ef5ea18ce191d5"
+  integrity sha512-+81MUSyX+BaSo+u2RbozuQk/UWx6hfG0a5gHu4ANEM4sU96XbuIyAB+rWBW1u70c6a5QuZfuYICn3s2UjuHUpA==
 
 uuid@^3.3.2:
   version "3.3.2"
