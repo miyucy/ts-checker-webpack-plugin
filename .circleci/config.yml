@@ -12,7 +12,7 @@ jobs:
   publish:
     working_directory: ~/workspace
     docker:
-      - image: circleci/node:11
+      - image: circleci/node:10
     steps:
       - checkout
       - run: |
